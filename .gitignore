@@ -1,0 +1,5 @@
+/conf/client.conf
+/logs
+/rclone.cache
+/tmp
+/mnt
