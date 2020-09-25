@@ -1,0 +1,18 @@
+# 此文件放置在 conf/client.conf 并按需求填写
+
+# DSFTP的终端节点
+# 公网对接时为 dsftp.opg.cn
+# 私网对接时为 dsftp-internal.opg.cn
+DSFTP_ENDPOINT="dsftp.opg.cn"
+
+# DSFTP租户ID
+DSFTP_USER="向数据中台产品经理索要"
+
+# DSFTP租户秘钥
+DSFTP_PASS="向数据中台产品经理索要"
+
+# DSFTP代理成本地HTTP服务时的参数
+DSFTP_PROXY_HTTP_OPTS="--addr=:8080 --user=foo --pass=bar --read-only"
+
+# DSFTP代理成本地SFTP服务时的参数
+DSFTP_PROXY_SFTP_OPTS="--addr=:2022 --user=foo --pass=bar"
