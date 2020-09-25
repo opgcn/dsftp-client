@@ -1,5 +1,5 @@
 /conf/client.conf
 /logs
-/rclone.cache
+/cache
 /tmp
 /mnt

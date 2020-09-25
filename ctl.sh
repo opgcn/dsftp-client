@@ -10,8 +10,13 @@
 DIR_HOME=$(dirname $(realpath ${BASH_SOURCE[0]}))
 DIR_TMP=$DIR_HOME/tmp
 DIR_MNT=$DIR_HOME/mnt
+DIR_CACHE=$DIR_HOME/cache
 FILE_THIS=$(basename ${BASH_SOURCE[0]})
 PATH_CONF=$DIR_HOME/conf/client.conf
+
+FLAGS_COMMON="-v --stats=30s --stats-one-line"
+FLAGS_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
+FLAGS_DSFTP=':sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure "${DSFTP_PASS}")'
 
 IS_LOGGING=1
 
@@ -25,6 +30,8 @@ $FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
     lsl     使用rclone工具列取DSFTP中所有文件的大小/时间/路径
     size    使用rclone工具统计DSFTP中所有文件数量和大小
     explore 使用rclone工具以交互式方式访问DSFTP
+    http    使用rclone工具代理成本地HTTP服务
+    sftp    使用rclone工具代理成本地SFTP服务
     mount   使用sshfs工具将DSFTP挂载到本地 $DIR_MNT/
     umount  使用fusermount工具将本地挂载点取消
     help    显示此帮助
@@ -138,20 +145,28 @@ function main
     elif [ "$sOpt" == "tree" ]; then
         echoDebug INFO "开始使用rclone工具列取DSFTP的目录树...."
         checkConf && checkRclone \
-        && runCmd rclone tree -aC --dirsfirst :sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure "${DSFTP_PASS}")
+        && runCmd rclone tree -aC --dirsfirst $(eval "echo $FLAGS_DSFTP")
     elif [ "$sOpt" == "lsl" ]; then
         echoDebug INFO "开始使用rclone工具列取DSFTP中所有文件的大小/时间/路径...."
         checkConf && checkRclone \
-        && runCmd rclone lsl :sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure "${DSFTP_PASS}")
+        && runCmd rclone lsl $(eval "echo $FLAGS_DSFTP")
     elif [ "$sOpt" == "explore" ]; then
         echoDebug INFO "开始使用rclone工具以交互式方式访问DSFTP...."
         checkConf && checkRclone \
         && read -n 1 -s -r -p "$HELP_NCDU" \
-        && runCmd rclone ncdu :sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure "${DSFTP_PASS}")
+        && runCmd rclone ncdu $(eval "echo $FLAGS_DSFTP")
     elif [ "$sOpt" == "size" ]; then
         echoDebug INFO "开始使用rclone工具统计DSFTP中所有文件数量和大小...."
         checkConf && checkRclone \
-        && runCmd rclone size :sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure "${DSFTP_PASS}")
+        && runCmd rclone size $(eval "echo $FLAGS_DSFTP")
+    elif [ "$sOpt" == "http" ]; then
+        echoDebug INFO "开始使用rclone工具代理成本地HTTP服务...."
+        checkConf && checkRclone \
+        && runCmd rclone serve http $(eval "echo $FLAGS_DSFTP") $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_HTTP_OPTS
+    elif [ "$sOpt" == "sftp" ]; then
+        echoDebug INFO "开始使用rclone工具代理成本地SFTP服务...."
+        checkConf && checkRclone \
+        && runCmd rclone serve sftp $(eval "echo $FLAGS_DSFTP") $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_SFTP_OPTS
     elif [ "$sOpt" == "mount" ]; then
         echoDebug INFO "开始使用sshfs工具将DSFTP挂载到本地目录 $DIR_MNT/ ...."
         sCmd1="echo ${DSFTP_PASS}"
