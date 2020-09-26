@@ -1,4 +1,5 @@
 /conf/client.conf
+/conf/http.html
 /logs
 /cache
 /tmp

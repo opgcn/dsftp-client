@@ -7,16 +7,21 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # global configs
 
+FILE_THIS=$(basename ${BASH_SOURCE[0]})
 DIR_HOME=$(dirname $(realpath ${BASH_SOURCE[0]}))
+
+DIR_CONF=$DIR_HOME/conf
+PATH_CONF_CLIENT=$DIR_CONF/client.conf
+PATH_CONF_HTTP_TPL=$DIR_CONF/http.tpl
+PATH_CONF_HTTP_HTML=$DIR_CONF/http.html
+
+source $PATH_CONF_CLIENT || { echo "请初始化配置文件 $PATH_CONF_CLIENT"; exit 255; }
+
 DIR_TMP=$DIR_HOME/tmp
 DIR_MNT=$DIR_HOME/mnt
 DIR_CACHE=$DIR_HOME/cache
-FILE_THIS=$(basename ${BASH_SOURCE[0]})
-PATH_CONF=$DIR_HOME/conf/client.conf
 
-source $PATH_CONF || { echo "请初始化配置文件 $PATH_CONF"; exit 255; }
-
-
+DSFTP_PREFIX="sftp://$DSFTP_USER@$DSFTP_ENDPOINT:"
 FLAGS_COMMON="-v --stats=30s --stats-one-line"
 FLAGS_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
 FLAGS_DSFTP=":sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure ${DSFTP_PASS})"
@@ -25,7 +30,7 @@ IS_LOGGING=1
 
 HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
 
-当前配置文件$PATH_CONF:
+当前配置文件$PATH_CONF_CLIENT:
 $(grep -E -v '^[[:space:]]*$|^[[:space:]]*#' conf/client.conf | sed 's/^/    /g')
 
 用法:
@@ -137,7 +142,7 @@ function checkConf
 function checkRclone
 {
     [ "$(which rclone 2> /dev/null)" ] && return 0
-    echoDebug FATAL "rclone工具未正确安装! 请参考 https://rclone.org/install/ , 或使用如下命令安装:$HELP_RCLONE" && return 254
+    echoDebug FATAL "rclone工具未正确安装! 请参考 https://rclone.org/install/ , 或使用如下命令安装:" && echo "$HELP_RCLONE" && return 254
 }
 
 function checkLftp
@@ -170,6 +175,11 @@ function getDsftpRcloneAddrOpts
     echo :sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure ${DSFTP_PASS})
 }
 
+function prepareHttpHtml
+{
+    sed "s|DSFTP_PREFIX|$DSFTP_PREFIX|g" $PATH_CONF_HTTP_TPL > $PATH_CONF_HTTP_HTML
+}
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # process functions
 
@@ -198,8 +208,8 @@ function main
         checkConf && checkRclone \
         && runCmd rclone size $FLAGS_DSFTP
     elif [ "$sOpt" == "http" ]; then
-        checkConf && checkRclone \
-        && runCmd rclone serve http $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_HTTP_OPTS $FLAGS_DSFTP
+        checkConf && checkRclone && prepareHttpHtml \
+        && runCmd rclone serve http $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML $FLAGS_DSFTP
     elif [ "$sOpt" == "ftp" ]; then
         checkConf && checkRclone \
         && runCmd rclone serve ftp $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_FTP_OPTS $FLAGS_DSFTP
@@ -215,8 +225,7 @@ function main
         checkConf && checkSshfs \
         && runCmd fusermount -u $DIR_MNT
     else
-        echoDebug ERROR "非法参数 '$sOpt'"
-        echo "$HELP"
+        echoDebug ERROR "非法参数'$sOpt'! 请使用'$0 help'查看帮助"
         return 1
     fi
 }
