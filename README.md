@@ -89,7 +89,11 @@ chmod a+x ./ctl.sh
 - `MIRROR_INTERVAL`：每次*镜像操作*一般包括*文件对比检查*和*文件复制传输*两个过程，该参数代表任意两次*镜像操作*之间间隔的秒数
 - `MIRROR_DSFTP_DIR`: 表示DSFTP租户空间中参与镜像的子目录。如`writable/other_data/`表示DSFTP上只有该目录参与镜像
 - `MIRROR_LOCAL_STORAGE`表示租户侧其它存储系统的配置信息，采用`存储类型 配置项1 配置值1 配置项2 配置值2 配置项3 配置值3 .....`的形式，例如：
-  
+  - *OSS*存储: `s3 provider Alibaba endpoint OSS的地域内网终端节点 env_auth false access_key_id 填写AK secret_access_key 填写SK`
+  - *SFTP*存储: `sftp host 租户侧其它SFTP地址 user 用户名 pass 密码`
+  - *FTP*存储: `ftp host 租户侧FTP地址 user 用户名 pass 密码`
+  - 本地磁盘存储: `local`
+- `MIRROR_LOCAL_DIR`: 表示租户侧其它存储系统的镜像路径，对于*OSS*可写`桶名/前缀目录`，对于块存储可以直接写路径`绝对路径/`
   
 ## 6 其它说明
 
