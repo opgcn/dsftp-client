@@ -42,7 +42,7 @@ $(grep -E -v '^[[:space:]]*$|^[[:space:]]*#' conf/client.conf | sed 's/^/    /g'
     nginx   显示nginx本地反代DSFTP四层SFTP协议的配置示例
     mount   使用sshfs工具将DSFTP挂载到本地 $DIR_MNT/
     umount  使用fusermount工具将本地挂载点取消
-    mirror  使用rclone工具进行跨存储镜像
+    mirror  使用rclone工具进行跨存储镜像同步
     help    显示此帮助
 "
 
@@ -236,7 +236,8 @@ function main
             return 246
         fi
         while true; do
-            runCmd rclone $MIRROR_METHOD $sDirection $FLAGS_COMMON
+            checkConf && checkRclone && configRclone \
+            && runCmd rclone $MIRROR_METHOD $sDirection $FLAGS_COMMON
             runCmd sleep $MIRROR_INTERVAL
         done
     else

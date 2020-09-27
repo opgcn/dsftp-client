@@ -1,14 +1,14 @@
 # 此文件放置在 conf/client.conf 并按 README.md 填写
 
-DSFTP_HOST="dsftp-internal.opg.cn"
-DSFTP_USER="someuser"
-DSFTP_PASS="somepass"
+DSFTP_HOST="dsftp.opg.cn"
+DSFTP_USER="租户ID"
+DSFTP_PASS="租户密码"
 
 DSFTP_PROXY_HTTP_OPTS="--addr=:8080 --user=foo --pass=bar --read-only"
 DSFTP_PROXY_FTP_OPTS="--addr=:2121 --user=foo --pass=bar"
 
-MIRROR_METHOD="copy"
 MIRROR_DIRECTION=DSFTP2LOCAL
+MIRROR_METHOD="copy"
 MIRROR_INTERVAL=10
 MIRROR_DSFTP_DIR="writable/"
 MIRROR_LOCAL_STORAGE="s3 provider Alibaba endpoint oss-cn-shanghai-internal.aliyuncs.com env_auth false access_key_id 填写AK secret_access_key 填写SK"
