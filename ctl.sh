@@ -7,27 +7,24 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # global configs
 
-FILE_THIS=$(basename ${BASH_SOURCE[0]})
 DIR_HOME=$(dirname $(realpath ${BASH_SOURCE[0]}))
 
 DIR_CONF=$DIR_HOME/conf
 PATH_CONF_CLIENT=$DIR_CONF/client.conf
 PATH_CONF_HTTP_TPL=$DIR_CONF/http.tpl
 PATH_CONF_HTTP_HTML=$DIR_CONF/http.html
-
-source $PATH_CONF_CLIENT || { echo "请初始化配置文件 $PATH_CONF_CLIENT"; exit 255; }
-
 DIR_TMP=$DIR_HOME/tmp
 DIR_MNT=$DIR_HOME/mnt
 DIR_CACHE=$DIR_HOME/cache
 
-DSFTP_PREFIX="sftp://$DSFTP_USER@$DSFTP_ENDPOINT:"
+source $PATH_CONF_CLIENT || { echo "请初始化配置文件 $PATH_CONF_CLIENT"; exit 255; }
+
 FLAGS_COMMON="-v --stats=30s --stats-one-line"
 FLAGS_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
-FLAGS_DSFTP=":sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure ${DSFTP_PASS})"
 
 IS_LOGGING=1
 
+FILE_THIS=$(basename ${BASH_SOURCE[0]})
 HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
 
 当前配置文件$PATH_CONF_CLIENT:
@@ -36,15 +33,16 @@ $(grep -E -v '^[[:space:]]*$|^[[:space:]]*#' conf/client.conf | sed 's/^/    /g'
 用法:
     lftp    使用lftp工具交互式访问DSFTP
     sftp    使用sftp工具交互式访问DSFTP
-    tree    使用rclone工具显示DSFTP的目录树
-    lsl     使用rclone工具列取DSFTP中所有文件的大小/时间/路径
-    size    使用rclone工具统计DSFTP中所有文件数量和大小
     explore 使用rclone工具以交互式方式访问DSFTP
+    tree    使用rclone工具显示DSFTP的目录树
+    list    使用rclone工具列取DSFTP中所有文件的大小/时间/路径
+    size    使用rclone工具统计DSFTP中所有文件数量和大小
     http    使用rclone工具代理DSFTP为本地HTTP协议服务
     ftp     使用rclone工具代理DSFTP为本地FTP协议服务
     nginx   显示nginx本地反代DSFTP四层SFTP协议的配置示例
     mount   使用sshfs工具将DSFTP挂载到本地 $DIR_MNT/
     umount  使用fusermount工具将本地挂载点取消
+    mirror  使用rclone工具进行跨存储镜像
     help    显示此帮助
 "
 
@@ -105,7 +103,7 @@ events {
 stream {
     server {
         listen 1;  # 本地代理SFTP协议的端口
-        proxy_pass $DSFTP_ENDPOINT:22;
+        proxy_pass $DSFTP_HOST:22;
     }
 } # stream
 "
@@ -133,51 +131,55 @@ function runCmd
 
 function checkConf
 {
-    [ -z "$DSFTP_ENDPOINT" ] && echoDebug FATAL "DSFTP_ENDPOINT 未配置!" && return 252
-    [ -z "$DSFTP_USER" ] && echoDebug FATAL "DSFTP_USER 未配置!" && return 251
-    [ -z "$DSFTP_PASS" ] && echoDebug FATAL "DSFTP_PASS 未配置!" && return 250
+    [ "$DSFTP_HOST" ] || { echoDebug FATAL "DSFTP_HOST 未配置!"; return 252; }
+    [ "$DSFTP_USER" ] || { echoDebug FATAL "DSFTP_USER 未配置!"; return 251; }
+    [ "$DSFTP_PASS" ] || { echoDebug FATAL "DSFTP_PASS 未配置!"; return 250; }
     return 0
 }
 
 function checkRclone
 {
-    [ "$(which rclone 2> /dev/null)" ] && return 0
-    echoDebug FATAL "rclone工具未正确安装! 请参考 https://rclone.org/install/ , 或使用如下命令安装:" && echo "$HELP_RCLONE" && return 254
+    [ "$(which rclone 2> /dev/null)" ] || { echoDebug FATAL "rclone工具未正确安装! 请参考 https://rclone.org/install/ , 或使用如下命令安装:"; echo "$HELP_RCLONE"; return 254; }
+    return 0
+}
+
+function configRclone
+{
+    runCmd rclone config delete DSFTP || return $?
+    runCmd rclone config create DSFTP sftp host "$DSFTP_HOST" user "$DSFTP_USER" pass "$DSFTP_PASS" > /dev/null || return $?
+    runCmd rclone config delete LOCAL || return $?
+    [ "$MIRROR_LOCAL_STORAGE" ] && { runCmd rclone config create LOCAL $MIRROR_LOCAL_STORAGE > /dev/null || return $?; }
+    return 0
 }
 
 function checkLftp
 {
-    [ "$(which lftp 2> /dev/null)" ] && return 0
-    echoDebug FATAL "lftp工具未正确安装! 请使用'sudo yum install -y lftp'等方式安装" && return 253
+    [ "$(which lftp 2> /dev/null)" ] || { echoDebug FATAL "lftp工具未正确安装! 请使用'sudo yum install -y lftp'等方式安装"; return 253; }
+    return 0
 }
 
 function checkSshfs
 {
-    [ "$(which sshfs 2> /dev/null)" ] && return 0
-    echoDebug FATAL "sshfs工具未正确安装! 请使用'sudo yum install -y fuse-sshfs'等方式安装" && return 249
+    [ "$(which sshfs 2> /dev/null)" ] || { echoDebug FATAL "sshfs工具未正确安装! 请使用'sudo yum install -y fuse-sshfs'等方式安装"; return 249; }
+    return 0
 }
 
 function prepareMntDir
 {
     mkdir -p $DIR_MNT
-    [ -n "$(ls -A $DIR_MNT)" ] && echoDebug ERROR "目前目录 $DIR_MNT/ 非空, 请检查!" && return 248
+    [ "$(ls -A $DIR_MNT)" ] && echoDebug ERROR "挂载目录 $DIR_MNT/ 非空, 请检查!" && return 248
     return 0
 }
 
 function checkSshpass
 {
-    [ "$(which sshpass 2> /dev/null)" ] && return 0
-    echoDebug FATAL "sshpass工具未正确安装! 请使用'sudo yum install -y sshpass'等方式安装" && return 247
-}
-
-function getDsftpRcloneAddrOpts
-{
-    echo :sftp: --sftp-host=${DSFTP_ENDPOINT} --sftp-user=${DSFTP_USER} --sftp-pass=$(rclone obscure ${DSFTP_PASS})
+    [ "$(which sshpass 2> /dev/null)" ] || { echoDebug FATAL "sshpass工具未正确安装! 请使用'sudo yum install -y sshpass'等方式安装"; return 247; }
+    return 0
 }
 
 function prepareHttpHtml
 {
-    sed "s|DSFTP_PREFIX|$DSFTP_PREFIX|g" $PATH_CONF_HTTP_TPL > $PATH_CONF_HTTP_HTML
+    sed "s|DSFTP_PREFIX|sftp://$DSFTP_USER@$DSFTP_HOST|g" $PATH_CONF_HTTP_TPL > $PATH_CONF_HTTP_HTML
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -190,40 +192,53 @@ function main
         echo "$HELP"
     elif [ "$sOpt" == "lftp" ]; then
         checkConf && checkLftp \
-        && runCmd lftp -u ${DSFTP_USER},${DSFTP_PASS} -e 'help' sftp://${DSFTP_ENDPOINT}
+        && runCmd lftp -u ${DSFTP_USER},${DSFTP_PASS} -e 'help' sftp://${DSFTP_HOST}
     elif [ "$sOpt" == "sftp" ]; then
         checkConf && checkSshpass \
-        && runCmd sshpass -p ${DSFTP_PASS} sftp -C ${DSFTP_USER}@${DSFTP_ENDPOINT}
+        && runCmd sshpass -p ${DSFTP_PASS} sftp -C ${DSFTP_USER}@${DSFTP_HOST}
     elif [ "$sOpt" == "tree" ]; then
-        checkConf && checkRclone \
-        && runCmd rclone tree -aC --dirsfirst $FLAGS_DSFTP
-    elif [ "$sOpt" == "lsl" ]; then
-        checkConf && checkRclone \
-        && runCmd rclone lsl $FLAGS_DSFTP
+        checkConf && checkRclone && configRclone \
+        && runCmd rclone tree DSFTP: -aC --dirsfirst
+    elif [ "$sOpt" == "list" ]; then
+        checkConf && checkRclone && configRclone \
+        && runCmd rclone lsl DSFTP:
     elif [ "$sOpt" == "explore" ]; then
-        checkConf && checkRclone \
+        checkConf && checkRclone && configRclone \
         && read -n 1 -s -r -p "$HELP_NCDU" \
-        && runCmd rclone ncdu $FLAGS_DSFTP
+        && runCmd rclone ncdu DSFTP:
     elif [ "$sOpt" == "size" ]; then
-        checkConf && checkRclone \
-        && runCmd rclone size $FLAGS_DSFTP
+        checkConf && checkRclone && configRclone \
+        && runCmd rclone size DSFTP:
     elif [ "$sOpt" == "http" ]; then
-        checkConf && checkRclone && prepareHttpHtml \
-        && runCmd rclone serve http $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML $FLAGS_DSFTP
+        checkConf && checkRclone && configRclone && prepareHttpHtml \
+        && runCmd rclone serve http DSFTP: $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML
     elif [ "$sOpt" == "ftp" ]; then
-        checkConf && checkRclone \
-        && runCmd rclone serve ftp $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_FTP_OPTS $FLAGS_DSFTP
+        checkConf && checkRclone && configRclone \
+        && runCmd rclone serve ftp DSFTP: $FLAGS_VFS $DSFTP_PROXY_FTP_OPTS $FLAGS_COMMON
     elif [ "$sOpt" == "nginx" ]; then
         checkConf && echo "$HELP_NGINX"
     elif [ "$sOpt" == "mount" ]; then
         sCmd1="echo ${DSFTP_PASS}"
-        sCmd2="sshfs ${DSFTP_USER}@${DSFTP_ENDPOINT}:/ $DIR_MNT -C -o password_stdin,StrictHostKeyChecking=no,PreferredAuthentications=password,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
+        sCmd2="sshfs ${DSFTP_USER}@${DSFTP_HOST}:/ $DIR_MNT -C -o password_stdin,StrictHostKeyChecking=no,PreferredAuthentications=password,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
         checkConf && checkSshfs && prepareMntDir \
         && echoDebug DEBUG "开始执行命令: $sCmd1 | $sCmd2" && $sCmd1 | $sCmd2 \
         && echoDebug INFO "sshfs调用结束，请查看目录 $DIR_MNT/ !"
     elif [ "$sOpt" == "umount" ]; then
         checkConf && checkSshfs \
         && runCmd fusermount -u $DIR_MNT
+    elif [ "$sOpt" == "mirror" ]; then
+        if [ "$MIRROR_DIRECTION" == "DSFTP2LOCAL" ]; then
+            sDirection="DSFTP:$MIRROR_DSFTP_DIR LOCAL:$MIRROR_LOCAL_DIR"
+        elif [ "$MIRROR_DIRECTION" == "LOCAL2DSFTP" ]; then
+            sDirection="LOCAL:$MIRROR_LOCAL_DIR DSFTP:$MIRROR_DSFTP_DIR"
+        else
+            echoDebug ERROR "无效的镜像方向配置MIRROR_DIRECTION:'$MIRROR_DIRECTION'!"
+            return 246
+        fi
+        while true; do
+            runCmd rclone $MIRROR_METHOD $sDirection $FLAGS_COMMON
+            runCmd sleep $MIRROR_INTERVAL
+        done
     else
         echoDebug ERROR "非法参数'$sOpt'! 请使用'$0 help'查看帮助"
         return 1

@@ -1,18 +1,15 @@
-# 此文件放置在 conf/client.conf 并按需求填写
+# 此文件放置在 conf/client.conf 并按 README.md 填写
 
-# DSFTP的终端节点
-# 公网对接时为 dsftp.opg.cn
-# 私网对接时为 dsftp-internal.opg.cn
-DSFTP_ENDPOINT="dsftp.opg.cn"
+DSFTP_HOST="dsftp-internal.opg.cn"
+DSFTP_USER="someuser"
+DSFTP_PASS="somepass"
 
-# DSFTP租户ID
-DSFTP_USER="向数据中台产品经理索要"
-
-# DSFTP租户秘钥
-DSFTP_PASS="向数据中台产品经理索要"
-
-# DSFTP代理成本地HTTP服务时的参数
 DSFTP_PROXY_HTTP_OPTS="--addr=:8080 --user=foo --pass=bar --read-only"
-
-# DSFTP代理成本地FTP服务时的参数
 DSFTP_PROXY_FTP_OPTS="--addr=:2121 --user=foo --pass=bar"
+
+MIRROR_METHOD="copy"
+MIRROR_DIRECTION=DSFTP2LOCAL
+MIRROR_INTERVAL=10
+MIRROR_DSFTP_DIR="writable/"
+MIRROR_LOCAL_STORAGE="s3 provider Alibaba endpoint oss-cn-shanghai-internal.aliyuncs.com env_auth false access_key_id 填写AK secret_access_key 填写SK"
+MIRROR_LOCAL_DIR="桶名/前缀目录"
