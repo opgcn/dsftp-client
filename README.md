@@ -1,15 +1,15 @@
 # dsftp-client
 
-基于[lftp](http://lftp.tech/)、[rclone](https://rclone.org/)、[sshfs](https://github.com/libfuse/sshfs)等开源组件集成的[东珠DSFTP文件交换服务](http://dsftp.opg.cn)**示例客户端**。旨在方便租户侧接入/导出数据中台离线文件数据。它包括以下引人特性：
+基于[lftp](http://lftp.tech/)、[rclone](https://rclone.org/)、[sshfs](https://github.com/libfuse/sshfs)等开源组件集成的[东珠DSFTP文件交换服务](http://dsftp.opg.cn)**示例客户端**，旨在让租户更方便的与总部数据中台进行数据文件对接（接入/导出）。它包括以下引人的特性：
 
-- 让用户可以通过交互式CLI/GUI的方式访问DSFTP；
-- 让用户网络内可以使用HTTP浏览器访问DSFTP；
-- 让用户将其DSFTP租户空间挂载为本地存储；
-- 让用户将其DSFTP租户空间和自身多种存储（如OSS、S3、Ceph、本地磁盘等）进行自动化镜像同步；
+- 简单配置地址、用户、秘钥后，租户马上可以通过交互式CLI/GUI的方式访问DSFTP，加速联调对接；
+- 租户可以将DSFTP中的文件内容以HTTP方式代理给租户网络中的非技术人员，在浏览器中查看；
+- 租户工程师可以将DSFTP存储挂载为本地目录，方便快速开发数据读写程序；
+- 租户可以将DSFTP租户空间和自身多种存储（如OSS、S3、Ceph、本地磁盘等）进行镜像同步，方便第三方集成；
 
 ## 1 安装和配置
 
-依赖组件*rclone*可以使用[官方文档](https://rclone.org/install/)中建议的方式安装:
+依赖的组件*rclone*可以使用[官方文档](https://rclone.org/install/)中建议方式进行安装:
 ```bash
 curl https://rclone.org/install.sh | sudo bash
 ```
@@ -24,14 +24,14 @@ sudo yum install -y lftp fuse-sshfs sshpass
 git clone https://github.com/opgcn/dsftp-client.git
 ```
 
-初始化配置文件，并填写相关配置:
+初始化配置文件，并填写*DSFTP*的地址等信息:
 ```bash
 cd dsftp-client/
 cp conf/client.conf.example conf/client.conf
 vim conf/client.conf
 ```
 
-查看命令行帮助:
+查看控制器的命令行帮助:
 ```bash
 chmod a+x ./ctl.sh
 ./ctl.sh help
