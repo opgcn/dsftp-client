@@ -12,25 +12,33 @@ source $PATH_CONF_CLIENT || { echo "无法加载配置文件'$PATH_CONF_CLIENT'�
 
 IS_LOGGING=1
 FILE_THIS=$(basename ${BASH_SOURCE[0]})
+DSFTP_URI="sftp://$DSFTP_USER@$DSFTP_HOST"
 
 HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
 
-用法:
-    lftp    使用lftp工具交互式访问DSFTP
-    sftp    使用sftp工具交互式访问DSFTP
-    explore 使用rclone工具以交互式方式访问DSFTP
-    tree    使用rclone工具显示DSFTP的目录树
-    list    使用rclone工具列取DSFTP中所有文件的大小/时间/路径
-    size    使用rclone工具统计DSFTP中所有文件数量和大小
-    http    使用rclone工具代理DSFTP为本地HTTP协议服务
-    ftp     使用rclone工具代理DSFTP为本地FTP协议服务
-    nginx   显示nginx本地反代DSFTP四层SFTP协议的配置示例
-    mount   使用sshfs工具将DSFTP挂载到本地 $DIR_MNT/
-    umount  使用fusermount工具将本地挂载点取消
-    mirror  使用rclone工具进行跨存储镜像同步
-    help    显示此帮助
+当前重要配置:
+    DSFTP空间   $DSFTP_URI
+    其它存储    $MIRROR_OTHER
+    镜像方向    ${MIRROR_DIRECTION/ / ===> }
 
-提示：请按'README.md'说明先检查配置文件'$PATH_CONF_CLIENT'
+用法:
+    lftp        使用lftp工具交互式访问DSFTP
+    sftp        使用sftp工具交互式访问DSFTP
+    explore     使用rclone工具以交互式方式访问DSFTP
+    tree        使用rclone工具显示DSFTP的目录树
+    list        使用rclone工具列取DSFTP中所有文件的大小/时间/路径
+    size        使用rclone工具统计DSFTP中所有文件数量和大小
+    http        使用rclone工具代理DSFTP为本地HTTP服务, 端口$(echo $DSFTP_PROXY_HTTP_OPTS|egrep -o '[[:digit:]]+')
+    ftp         使用rclone工具代理DSFTP为本地FTP服务, 端口$(echo $DSFTP_PROXY_FTP_OPTS|egrep -o '[[:digit:]]+')
+    nginx       显示nginx本地反代DSFTP四层SFTP协议的配置示例
+    mount       使用sshfs工具将DSFTP挂载到本地目录${DIR_MNT}
+    lmount      列取正在进行中的sshfs挂载
+    umount      使用fusermount工具取消本地挂载点${DIR_MNT}
+    mirroronce  一次性使用rclone进行跨存储镜像同步
+    mirrorloop  循环的使用rclone进行跨存储镜像同步
+    daemon      [TODO] 显示部分命令后台运行的示例
+    logrotate   轮转压缩${DIR_LOGS}目录中的日志
+    help        显示此帮助
 "
 
 HELP_NCDU="交互式浏览器中快捷键提示：
@@ -54,7 +62,7 @@ HELP_NCDU="交互式浏览器中快捷键提示：
 按任意键继续....
 "
 
-HELP_RCLONE="
+TPL_RCLONE="
 rm -rf $DIR_TMP \\
 && mkdir -p $DIR_TMP \\
 && cd $DIR_TMP \\
@@ -72,7 +80,7 @@ rm -rf $DIR_TMP \\
 && rclone version
 "
 
-HELP_NGINX="
+TPL_NGINX="
 # http://nginx.org/en/docs/ngx_core_module.html
 user                nginx;
 worker_processes    auto;
@@ -93,6 +101,23 @@ stream {
         proxy_pass $DSFTP_HOST:22;
     }
 } # stream
+"
+
+TPL_LOGROTATE="# 此配置文件由 $(realpath ${BASH_SOURCE[0]}) 自动更新
+$DIR_LOGS/*.log {
+    daily
+    rotate 30
+    notifempty
+    missingok
+    dateext
+    dateyesterday
+    copytruncate
+    compress
+    compresscmd $(which xz)
+    uncompresscmd $(which unxz)
+    compressext .xz
+    compressoptions -9
+}
 "
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -120,6 +145,11 @@ function runCmd
     return $nRet
 }
 
+function rcloneWrapper
+{
+    runCmd rclone -v --config=$PATH_CONF_RCLONE $@
+}
+
 function checkConf
 {
     [ "$DSFTP_HOST" ] || { echoDebug FATAL "DSFTP_HOST 未配置!"; return 252; }
@@ -130,18 +160,18 @@ function checkConf
 
 function checkRclone
 {
-    [ "$(which rclone 2> /dev/null)" ] || { echoDebug FATAL "rclone工具未正确安装! 请参考 https://rclone.org/install/ , 或使用如下命令安装:"; echo "$HELP_RCLONE"; return 254; }
+    [ "$(which rclone 2> /dev/null)" ] || { echoDebug FATAL "rclone工具未正确安装! 请参考 https://rclone.org/install/ , 或使用如下命令安装:"; echo "$TPL_RCLONE"; return 254; }
     return 0
 }
 
 function configRcloneDsftp
 {
-    runCmd rclone config create DSFTP sftp host "$DSFTP_HOST" user "$DSFTP_USER" pass "$DSFTP_PASS" > /dev/null || return $?
+     rcloneWrapper config create DSFTP sftp host "$DSFTP_HOST" user "$DSFTP_USER" pass "$DSFTP_PASS" > /dev/null
 }
 
 function configRcloneLocal
 {
-    runCmd rclone config create LOCAL $MIRROR_LOCAL_STORAGE > /dev/null || return $?
+    rcloneWrapper config create OTHER $MIRROR_OTHER > /dev/null
 }
 
 function checkLftp
@@ -171,7 +201,13 @@ function checkSshpass
 
 function prepareHttpHtml
 {
-    sed "s|DSFTP_PREFIX|sftp://$DSFTP_USER@$DSFTP_HOST|g" $PATH_CONF_HTTP_TPL > $PATH_CONF_HTTP_HTML
+    sed "s|DSFTP_PREFIX|$DSFTP_URI|g" $PATH_CONF_HTTP_TPL > $PATH_CONF_HTTP_HTML
+}
+
+function doMirror
+{
+    checkConf && checkRclone && configRcloneDsftp && configRcloneLocal \
+    && rcloneWrapper $MIRROR_METHOD $MIRROR_DIRECTION $OPTS_RCLONE_STATS
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -190,48 +226,50 @@ function parseOpts
         && runCmd sshpass -p ${DSFTP_PASS} sftp -C ${DSFTP_USER}@${DSFTP_HOST}
     elif [ "$sOpt" == "tree" ]; then
         checkConf && checkRclone && configRcloneDsftp \
-        && runCmd rclone tree DSFTP: -aC --dirsfirst
+        && rcloneWrapper tree DSFTP: -aC --dirsfirst
     elif [ "$sOpt" == "list" ]; then
         checkConf && checkRclone && configRcloneDsftp \
-        && runCmd rclone lsl DSFTP:
+        && rcloneWrapper lsl DSFTP:
     elif [ "$sOpt" == "explore" ]; then
         checkConf && checkRclone && configRcloneDsftp \
         && read -n 1 -s -r -p "$HELP_NCDU" \
-        && runCmd rclone ncdu DSFTP:
+        && rcloneWrapper ncdu DSFTP:
     elif [ "$sOpt" == "size" ]; then
         checkConf && checkRclone && configRcloneDsftp \
-        && runCmd rclone size DSFTP:
+        && rcloneWrapper size DSFTP:
     elif [ "$sOpt" == "http" ]; then
         checkConf && checkRclone && configRcloneDsftp && prepareHttpHtml \
-        && runCmd rclone serve http DSFTP: $OPTS_RCLONE_VERBOSE $OPTS_RCLONE_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML
+        && rcloneWrapper serve http DSFTP: $OPTS_RCLONE_STATS $OPTS_RCLONE_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML
     elif [ "$sOpt" == "ftp" ]; then
         checkConf && checkRclone && configRcloneDsftp \
-        && runCmd rclone serve ftp DSFTP: $OPTS_RCLONE_VERBOSE $OPTS_RCLONE_VFS $DSFTP_PROXY_FTP_OPTS
+        && rcloneWrapper serve ftp DSFTP: $OPTS_RCLONE_STATS $OPTS_RCLONE_VFS $DSFTP_PROXY_FTP_OPTS
     elif [ "$sOpt" == "nginx" ]; then
-        checkConf && echo "$HELP_NGINX"
+        checkConf && echo "$TPL_NGINX"
     elif [ "$sOpt" == "mount" ]; then
         sCmd1="echo ${DSFTP_PASS}"
         sCmd2="sshfs ${DSFTP_USER}@${DSFTP_HOST}:/ $OPTS_SSHFS"
         checkConf && checkSshfs && prepareMntDir \
         && echoDebug DEBUG "命令: $sCmd1 | $sCmd2" && $sCmd1 | $sCmd2 \
         && echoDebug INFO "sshfs调用结束，请查看目录 $DIR_MNT/ !"
+    elif [ "$sOpt" == "lmount" ]; then
+        sCmd1="mount -l"
+        sCmd2="fgrep fuse.sshfs"
+        checkConf && checkSshfs \
+        && echoDebug DEBUG "命令: $sCmd1 | $sCmd2" && $sCmd1 | $sCmd2 
     elif [ "$sOpt" == "umount" ]; then
         checkConf && checkSshfs \
         && runCmd fusermount -u $DIR_MNT
-    elif [ "$sOpt" == "mirror" ]; then
-        if [ "$MIRROR_DIRECTION" == "DSFTP2LOCAL" ]; then
-            sDirection="DSFTP:$MIRROR_DSFTP_DIR LOCAL:$MIRROR_LOCAL_DIR"
-        elif [ "$MIRROR_DIRECTION" == "LOCAL2DSFTP" ]; then
-            sDirection="LOCAL:$MIRROR_LOCAL_DIR DSFTP:$MIRROR_DSFTP_DIR"
-        else
-            echoDebug ERROR "无效的镜像方向配置MIRROR_DIRECTION:'$MIRROR_DIRECTION'!"
-            return 246
-        fi
+    elif [ "$sOpt" == "mirroronce" ]; then
+        doMirror
+    elif [ "$sOpt" == "mirrorloop" ]; then
         while true; do
-            checkConf && checkRclone && configRcloneDsftp && configRcloneLocal \
-            && runCmd rclone $MIRROR_METHOD $sDirection $OPTS_RCLONE_VERBOSE
+            doMirror
             runCmd sleep $MIRROR_INTERVAL
         done
+    elif [ "$sOpt" == "logrotate" ]; then
+        checkConf && mkdir -p $DIR_LOGS \
+        && echo "$TPL_LOGROTATE" > $PATH_LOGROTATE_CONF \
+        && runCmd logrotate -v -s $PATH_LOGROTATE_STATE $PATH_LOGROTATE_CONF
     else
         echoDebug ERROR "非法参数'$sOpt'! 请使用'$FILE_THIS help'查看帮助"
         return 1

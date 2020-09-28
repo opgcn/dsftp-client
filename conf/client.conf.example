@@ -1,21 +1,22 @@
 # 此文件放置在 conf/client.conf 并按 README.md 填写
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# 自省路径，请勿修改
+# 路径相关配置，请勿修改
 DIR_HOME=$(dirname $(dirname $(realpath ${BASH_SOURCE[0]})))
 DIR_CONF=$DIR_HOME/conf
+PATH_CONF_RCLONE=$DIR_CONF/rclone.conf
 PATH_CONF_HTTP_TPL=$DIR_CONF/http.tpl
 PATH_CONF_HTTP_HTML=$DIR_CONF/http.html
-PATH_CONF_LOGROTATE=$DIR_CONF/logrotate.conf
-PATH_LOGROTATE_STATE=$DIR_CONF/logrotate.state
 DIR_TMP=$DIR_HOME/tmp
 DIR_MNT=$DIR_HOME/mnt
 DIR_CACHE=$DIR_HOME/cache
 DIR_LOGS=$DIR_HOME/logs
+PATH_LOGROTATE_CONF=$DIR_LOGS/logrotate.conf
+PATH_LOGROTATE_STATE=$DIR_LOGS/logrotate.state
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # 第三方组件参数，请勿修改
-OPTS_RCLONE_VERBOSE="-v --stats=30s --stats-one-line"
+OPTS_RCLONE_STATS="--stats=30s --stats-one-line"
 OPTS_RCLONE_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
 OPTS_SSHFS="$DIR_MNT -C -o password_stdin,StrictHostKeyChecking=no,PreferredAuthentications=password,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
 
@@ -32,10 +33,7 @@ DSFTP_PROXY_FTP_OPTS="--addr=:2121 --user=foo --pass=bar"
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # 租户镜像相关配置
-MIRROR_DIRECTION=DSFTP2LOCAL
+MIRROR_OTHER="s3 provider Alibaba endpoint oss-cn-shanghai-internal.aliyuncs.com env_auth false access_key_id 填写AK secret_access_key 填写SK"
+MIRROR_DIRECTION="DSFTP:writable/ OTHER:桶名/前缀目录"
 MIRROR_METHOD="copy"
 MIRROR_INTERVAL=10
-MIRROR_DSFTP_DIR="writable/"
-MIRROR_LOCAL_STORAGE="s3 provider Alibaba endpoint oss-cn-shanghai-internal.aliyuncs.com env_auth false access_key_id 填写AK secret_access_key 填写SK"
-MIRROR_LOCAL_DIR="桶名/前缀目录"
-
