@@ -206,12 +206,12 @@ function parseOpts
         && runCmd rclone serve http DSFTP: $OPTS_RCLONE_VERBOSE $OPTS_RCLONE_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML
     elif [ "$sOpt" == "ftp" ]; then
         checkConf && checkRclone && configRcloneDsftp \
-        && runCmd rclone serve ftp DSFTP: $OPTS_RCLONE_VFS $DSFTP_PROXY_FTP_OPTS $OPTS_RCLONE_VERBOSE
+        && runCmd rclone serve ftp DSFTP: $OPTS_RCLONE_VERBOSE $OPTS_RCLONE_VFS $DSFTP_PROXY_FTP_OPTS
     elif [ "$sOpt" == "nginx" ]; then
         checkConf && echo "$HELP_NGINX"
     elif [ "$sOpt" == "mount" ]; then
         sCmd1="echo ${DSFTP_PASS}"
-        sCmd2="sshfs ${DSFTP_USER}@${DSFTP_HOST}:/ $DIR_MNT -C -o password_stdin,StrictHostKeyChecking=no,PreferredAuthentications=password,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
+        sCmd2="sshfs ${DSFTP_USER}@${DSFTP_HOST}:/ $OPTS_SSHFS"
         checkConf && checkSshfs && prepareMntDir \
         && echoDebug DEBUG "命令: $sCmd1 | $sCmd2" && $sCmd1 | $sCmd2 \
         && echoDebug INFO "sshfs调用结束，请查看目录 $DIR_MNT/ !"

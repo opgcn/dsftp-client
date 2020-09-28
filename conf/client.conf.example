@@ -17,6 +17,7 @@ DIR_LOGS=$DIR_HOME/logs
 # 第三方组件参数，请勿修改
 OPTS_RCLONE_VERBOSE="-v --stats=30s --stats-one-line"
 OPTS_RCLONE_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
+OPTS_SSHFS="$DIR_MNT -C -o password_stdin,StrictHostKeyChecking=no,PreferredAuthentications=password,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # 租户连接DSFTP服务端的相关配置
@@ -37,3 +38,4 @@ MIRROR_INTERVAL=10
 MIRROR_DSFTP_DIR="writable/"
 MIRROR_LOCAL_STORAGE="s3 provider Alibaba endpoint oss-cn-shanghai-internal.aliyuncs.com env_auth false access_key_id 填写AK secret_access_key 填写SK"
 MIRROR_LOCAL_DIR="桶名/前缀目录"
+
