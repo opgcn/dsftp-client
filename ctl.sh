@@ -7,28 +7,13 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # global configs
 
-DIR_HOME=$(dirname $(realpath ${BASH_SOURCE[0]}))
-
-DIR_CONF=$DIR_HOME/conf
-PATH_CONF_CLIENT=$DIR_CONF/client.conf
-PATH_CONF_HTTP_TPL=$DIR_CONF/http.tpl
-PATH_CONF_HTTP_HTML=$DIR_CONF/http.html
-DIR_TMP=$DIR_HOME/tmp
-DIR_MNT=$DIR_HOME/mnt
-DIR_CACHE=$DIR_HOME/cache
-
-source $PATH_CONF_CLIENT || { echo "请初始化配置文件 $PATH_CONF_CLIENT"; exit 255; }
-
-FLAGS_COMMON="-v --stats=30s --stats-one-line"
-FLAGS_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
+PATH_CONF_CLIENT=$(dirname $(realpath ${BASH_SOURCE[0]}))/conf/client.conf
+source $PATH_CONF_CLIENT || { echo "无法加载配置文件'$PATH_CONF_CLIENT'，请检查！"; exit 255; }
 
 IS_LOGGING=1
-
 FILE_THIS=$(basename ${BASH_SOURCE[0]})
-HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
 
-当前配置文件$PATH_CONF_CLIENT:
-$(grep -E -v '^[[:space:]]*$|^[[:space:]]*#' conf/client.conf | sed 's/^/    /g')
+HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
 
 用法:
     lftp    使用lftp工具交互式访问DSFTP
@@ -44,6 +29,8 @@ $(grep -E -v '^[[:space:]]*$|^[[:space:]]*#' conf/client.conf | sed 's/^/    /g'
     umount  使用fusermount工具将本地挂载点取消
     mirror  使用rclone工具进行跨存储镜像同步
     help    显示此帮助
+
+提示：请按'README.md'说明先检查配置文件'$PATH_CONF_CLIENT'
 "
 
 HELP_NCDU="交互式浏览器中快捷键提示：
@@ -116,14 +103,18 @@ function echoDebug
 #   $1: debug level
 #   $2: message string
 {
+    sPos=""
+    for x in ${FUNCNAME[@]}; do
+        [ "echoDebug" != "$x" ] && [ "runCmd" != "$x" ] && sPos="${sPos}${x}@"
+    done
     if [ 1 -eq ${IS_LOGGING} ]; then
-        echo -e "\e[7;93m[$FILE_THIS $(date +'%F %T') $1]\e[0m \e[93m$2\e[0m" >&2
+        echo -e "\e[7;93m[${sPos}${FILE_THIS} $(date +'%F %T') $1]\e[0m \e[93m$2\e[0m" >&2
     fi
 }
 
 function runCmd
 {
-    echoDebug DEBUG "开始执行命令: $*"
+    echoDebug DEBUG "命令: $*"
     $@
     nRet=$?; [ 0 -eq $nRet ] || echoDebug WARN "命令返回非零值: $nRet"
     return $nRet
@@ -143,13 +134,14 @@ function checkRclone
     return 0
 }
 
-function configRclone
+function configRcloneDsftp
 {
-    runCmd rclone config delete DSFTP || return $?
     runCmd rclone config create DSFTP sftp host "$DSFTP_HOST" user "$DSFTP_USER" pass "$DSFTP_PASS" > /dev/null || return $?
-    runCmd rclone config delete LOCAL || return $?
-    [ "$MIRROR_LOCAL_STORAGE" ] && { runCmd rclone config create LOCAL $MIRROR_LOCAL_STORAGE > /dev/null || return $?; }
-    return 0
+}
+
+function configRcloneLocal
+{
+    runCmd rclone config create LOCAL $MIRROR_LOCAL_STORAGE > /dev/null || return $?
 }
 
 function checkLftp
@@ -185,7 +177,7 @@ function prepareHttpHtml
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # process functions
 
-function main
+function parseOpts
 {
     declare sOpt="$1"
     if [ "$sOpt" == "help" ] || [ "$sOpt" == '' ]; then
@@ -197,31 +189,31 @@ function main
         checkConf && checkSshpass \
         && runCmd sshpass -p ${DSFTP_PASS} sftp -C ${DSFTP_USER}@${DSFTP_HOST}
     elif [ "$sOpt" == "tree" ]; then
-        checkConf && checkRclone && configRclone \
+        checkConf && checkRclone && configRcloneDsftp \
         && runCmd rclone tree DSFTP: -aC --dirsfirst
     elif [ "$sOpt" == "list" ]; then
-        checkConf && checkRclone && configRclone \
+        checkConf && checkRclone && configRcloneDsftp \
         && runCmd rclone lsl DSFTP:
     elif [ "$sOpt" == "explore" ]; then
-        checkConf && checkRclone && configRclone \
+        checkConf && checkRclone && configRcloneDsftp \
         && read -n 1 -s -r -p "$HELP_NCDU" \
         && runCmd rclone ncdu DSFTP:
     elif [ "$sOpt" == "size" ]; then
-        checkConf && checkRclone && configRclone \
+        checkConf && checkRclone && configRcloneDsftp \
         && runCmd rclone size DSFTP:
     elif [ "$sOpt" == "http" ]; then
-        checkConf && checkRclone && configRclone && prepareHttpHtml \
-        && runCmd rclone serve http DSFTP: $FLAGS_COMMON $FLAGS_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML
+        checkConf && checkRclone && configRcloneDsftp && prepareHttpHtml \
+        && runCmd rclone serve http DSFTP: $OPTS_RCLONE_VERBOSE $OPTS_RCLONE_VFS $DSFTP_PROXY_HTTP_OPTS --template $PATH_CONF_HTTP_HTML
     elif [ "$sOpt" == "ftp" ]; then
-        checkConf && checkRclone && configRclone \
-        && runCmd rclone serve ftp DSFTP: $FLAGS_VFS $DSFTP_PROXY_FTP_OPTS $FLAGS_COMMON
+        checkConf && checkRclone && configRcloneDsftp \
+        && runCmd rclone serve ftp DSFTP: $OPTS_RCLONE_VFS $DSFTP_PROXY_FTP_OPTS $OPTS_RCLONE_VERBOSE
     elif [ "$sOpt" == "nginx" ]; then
         checkConf && echo "$HELP_NGINX"
     elif [ "$sOpt" == "mount" ]; then
         sCmd1="echo ${DSFTP_PASS}"
         sCmd2="sshfs ${DSFTP_USER}@${DSFTP_HOST}:/ $DIR_MNT -C -o password_stdin,StrictHostKeyChecking=no,PreferredAuthentications=password,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
         checkConf && checkSshfs && prepareMntDir \
-        && echoDebug DEBUG "开始执行命令: $sCmd1 | $sCmd2" && $sCmd1 | $sCmd2 \
+        && echoDebug DEBUG "命令: $sCmd1 | $sCmd2" && $sCmd1 | $sCmd2 \
         && echoDebug INFO "sshfs调用结束，请查看目录 $DIR_MNT/ !"
     elif [ "$sOpt" == "umount" ]; then
         checkConf && checkSshfs \
@@ -236,16 +228,16 @@ function main
             return 246
         fi
         while true; do
-            checkConf && checkRclone && configRclone \
-            && runCmd rclone $MIRROR_METHOD $sDirection $FLAGS_COMMON
+            checkConf && checkRclone && configRcloneDsftp && configRcloneLocal \
+            && runCmd rclone $MIRROR_METHOD $sDirection $OPTS_RCLONE_VERBOSE
             runCmd sleep $MIRROR_INTERVAL
         done
     else
-        echoDebug ERROR "非法参数'$sOpt'! 请使用'$0 help'查看帮助"
+        echoDebug ERROR "非法参数'$sOpt'! 请使用'$FILE_THIS help'查看帮助"
         return 1
     fi
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # main process
-main $@
+parseOpts $@

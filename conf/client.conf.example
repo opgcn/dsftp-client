@@ -1,12 +1,36 @@
 # 此文件放置在 conf/client.conf 并按 README.md 填写
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# 自省路径，请勿修改
+DIR_HOME=$(dirname $(dirname $(realpath ${BASH_SOURCE[0]})))
+DIR_CONF=$DIR_HOME/conf
+PATH_CONF_HTTP_TPL=$DIR_CONF/http.tpl
+PATH_CONF_HTTP_HTML=$DIR_CONF/http.html
+PATH_CONF_LOGROTATE=$DIR_CONF/logrotate.conf
+PATH_LOGROTATE_STATE=$DIR_CONF/logrotate.state
+DIR_TMP=$DIR_HOME/tmp
+DIR_MNT=$DIR_HOME/mnt
+DIR_CACHE=$DIR_HOME/cache
+DIR_LOGS=$DIR_HOME/logs
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# 第三方组件参数，请勿修改
+OPTS_RCLONE_VERBOSE="-v --stats=30s --stats-one-line"
+OPTS_RCLONE_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# 租户连接DSFTP服务端的相关配置
 DSFTP_HOST="dsftp.opg.cn"
 DSFTP_USER="租户ID"
 DSFTP_PASS="租户密码"
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# 租户代理相关配置
 DSFTP_PROXY_HTTP_OPTS="--addr=:8080 --user=foo --pass=bar --read-only"
 DSFTP_PROXY_FTP_OPTS="--addr=:2121 --user=foo --pass=bar"
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# 租户镜像相关配置
 MIRROR_DIRECTION=DSFTP2LOCAL
 MIRROR_METHOD="copy"
 MIRROR_INTERVAL=10
