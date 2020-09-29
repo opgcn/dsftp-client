@@ -36,7 +36,7 @@ HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
     umount      使用fusermount工具取消本地挂载点${DIR_MNT}
     mirroronce  一次性使用rclone进行跨存储镜像同步
     mirrorloop  循环的使用rclone进行跨存储镜像同步
-    daemon      [TODO] 显示部分命令后台运行的示例
+    daemon      显示部分命令后台运行的命令示例
     logrotate   轮转压缩${DIR_LOGS}目录中的日志
     help        显示此帮助
 "
@@ -101,6 +101,14 @@ stream {
         proxy_pass $DSFTP_HOST:22;
     }
 } # stream
+"
+
+TPL_DAEMON="
+# 日常以后台进程方式启动命令
+subcmd=指定子命令 && nohup bash -l $(realpath ${BASH_SOURCE[0]}) \$subcmd >> $DIR_LOGS/\$subcmd.log 2>&1 &
+
+# 开机自启后台进程，在crontab -e中加入
+@reboot subcmd=指定子命令 && nohup bash -l $(realpath ${BASH_SOURCE[0]}) \$subcmd >> $DIR_LOGS/\$subcmd.log 2>&1 &
 "
 
 TPL_LOGROTATE="# 此配置文件由 $(realpath ${BASH_SOURCE[0]}) 自动更新
@@ -208,7 +216,7 @@ function doMirror
 {
     [ "move" == "$MIRROR_METHOD" ] && MIRROR_METHOD="$MIRROR_METHOD --delete-empty-src-dirs --create-empty-src-dirs"
     checkConf && checkRclone && configRcloneDsftp && configRcloneLocal \
-    && rcloneWrapper $MIRROR_METHOD $MIRROR_DIRECTION $OPTS_RCLONE_STATS
+    && rcloneWrapper $MIRROR_METHOD $MIRROR_DIRECTION $OPTS_RCLONE_ORDER $OPTS_RCLONE_STATS
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -248,7 +256,7 @@ function parseOpts
         checkConf && echo "$TPL_NGINX"
     elif [ "$sOpt" == "mount" ]; then
         sCmd1="echo ${DSFTP_PASS}"
-        sCmd2="sshfs ${DSFTP_USER}@${DSFTP_HOST}:/ $OPTS_SSHFS"
+        sCmd2="sshfs ${DSFTP_USER}@${DSFTP_HOST}:/ $DIR_MNT $OPTS_SSHFS"
         checkConf && checkSshfs && prepareMntDir \
         && echoDebug DEBUG "命令: $sCmd1 | $sCmd2" && $sCmd1 | $sCmd2 \
         && echoDebug INFO "sshfs调用结束，请查看目录 $DIR_MNT/ !"
@@ -267,6 +275,9 @@ function parseOpts
             doMirror
             runCmd sleep $MIRROR_INTERVAL
         done
+    elif [ "$sOpt" == "daemon" ]; then
+        checkConf && mkdir -p $DIR_LOGS \
+        && echo "$TPL_DAEMON"
     elif [ "$sOpt" == "logrotate" ]; then
         checkConf && mkdir -p $DIR_LOGS \
         && echo "$TPL_LOGROTATE" > $PATH_LOGROTATE_CONF \
