@@ -19,7 +19,7 @@ HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
 当前重要配置:
     DSFTP空间   $DSFTP_URI
     其它存储    $MIRROR_OTHER
-    镜像方向    ${MIRROR_DIRECTION/ / ===> }
+    镜像方向    ${MIRROR_DIRECTION/ / ===> ${MIRROR_METHOD} ===> }
 
 用法:
     lftp        使用lftp工具交互式访问DSFTP
@@ -206,6 +206,7 @@ function prepareHttpHtml
 
 function doMirror
 {
+    [ "move" == "$MIRROR_METHOD" ] && MIRROR_METHOD="$MIRROR_METHOD --delete-empty-src-dirs --create-empty-src-dirs"
     checkConf && checkRclone && configRcloneDsftp && configRcloneLocal \
     && rcloneWrapper $MIRROR_METHOD $MIRROR_DIRECTION $OPTS_RCLONE_STATS
 }
