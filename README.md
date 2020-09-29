@@ -74,28 +74,33 @@ chmod a+x ./ctl.sh
 
 在数据接入/导出数据中台的过程中，如果租户侧期望尽可能的简化开发成本，只通过`cp`、`mv`等本地方式上传、下载文件，可以通过将DSFTP的租户空间挂载为本地目录来实现:
 - 子命令`mount`实现挂载；
+- 子命令`lmount`显示目前挂载状态列表；
 - 子命令`umount`取消挂载；
 
 ## 5 镜像DSFTP
 
 *镜像*是指将DSFTP租户空间中的文件，自动化同步到租户的其它存储系统（如租户的OSS、租户自建的FTP等）中，或相反的过程。*dsftp-client*在`conf/client.conf`中提供以下参数，用以描述*镜像*功能相关配置：
-- `MIRROR_DIRECTION`镜像方向：
-  - `DSFTP2LOCAL`从DSFTP镜像到租户本地其它存储，用于数据中台的数据导出场景
-  - `DSFTP2LOCAL`从租户本地其它存储镜像到DSFTP，用于数据中台的数据接入场景
-- `MIRROR_METHOD`镜像方式：
-  - `copy`，增量复制方式，如果目标中包括源中不存在的文件，不会删除目标上的文件
-  - `sync`，增量强制方式，如果目标中包括源中不存在的文件，会删除目标上的文件
-  - 一般建议`copy`方式即可
-- `MIRROR_INTERVAL`：每次*镜像操作*一般包括*文件对比检查*和*文件复制传输*两个过程，该参数代表任意两次*镜像操作*之间间隔的秒数
-- `MIRROR_DSFTP_DIR`: 表示DSFTP租户空间中参与镜像的子目录。如`writable/other_data/`表示DSFTP上只有该目录参与镜像
-- `MIRROR_LOCAL_STORAGE`表示租户侧其它存储系统的配置信息，采用`存储类型 配置项1 配置值1 配置项2 配置值2 配置项3 配置值3 .....`的形式，例如：
+- `MIRROR_OTHER`表示租户侧其它存储系统的配置信息，采用`存储类型 配置项1 配置值1 配置项2 配置值2 配置项3 配置值3 .....`的形式，例如：
   - *OSS*存储: `s3 provider Alibaba endpoint OSS的地域内网终端节点 env_auth false access_key_id 填写AK secret_access_key 填写SK`
   - *SFTP*存储: `sftp host 租户侧其它SFTP地址 user 用户名 pass 密码`
   - *FTP*存储: `ftp host 租户侧FTP地址 user 用户名 pass 密码`
   - 本地磁盘存储: `local`
-- `MIRROR_LOCAL_DIR`: 表示租户侧其它存储系统的镜像路径，对于*OSS*可写`桶名/前缀目录`，对于块存储可以直接写路径`绝对路径/`
-  
-配置完成后，通过子命令`mirror`会以前台进程方式进行不停歇的镜像同步。
+- `MIRROR_DIRECTION`镜像方向，满足`源存储系统标识:源存储位置 目标存储标识:目标存储位置`的格式：
+  - 存储系统标识：`DSFTP`标识租户的DSFTP存储空间，`OTHER`标识租户的其它存储系统。
+  - 存储位置: 对于对象存储为`桶名/对象前置`，块存储为`/绝对路径目录/`
+  - 例如:
+    - 假设`OTHER`被配置为本地存储，`DSFTP:writable/ OTHER:/root/mirror`表示从DSFTP的`writable/`到本地的`/root/mirror`目录
+    - 假设`OTHER`被配置为对象存储，`OTHER:abc/data DSFTP:writable/abc/`表示从对象存储`abc`桶的`data`前缀路径到DSFTP的`writable/abc/`目录
+- `MIRROR_METHOD`镜像方式：
+  - `copy`，增量复制方式，如果目标中包括源中不存在的文件，不会删除目标上的文件
+  - `move`，增量移动方式，类似copy，但是复制完成后会删除源存储中文件
+  - `sync`，增量强制方式，如果目标中包括源中不存在的文件，会删除目标上的文件，也不会删除源上的文件
+  - 一般`copy`方式即可
+- `MIRROR_INTERVAL`：该参数代表任意两次`mirrorloop`子命令中`mirroronce`之间间隔的秒数
+
+配置完成后，通过使用的子命令有：
+- `mirroronce`会以前台进程一次性方式进行不停歇的镜像同步；
+- `mirrorloop`会以前台进程循环方式进行不停歇的镜像同步；
 
 ## 6 其它说明
 
