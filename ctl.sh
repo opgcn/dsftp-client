@@ -110,6 +110,9 @@ subcmd=指定子命令 && nohup bash -l $(realpath ${BASH_SOURCE[0]}) \$subcmd >
 
 # 开机自启后台进程，在crontab -e中加入
 @reboot subcmd=指定子命令 && nohup bash -l $(realpath ${BASH_SOURCE[0]}) \$subcmd >> $DIR_LOGS/\$subcmd.log 2>&1 &
+
+# 每天日志轮转，在crontab -e中加入
+@daily bash -l $(realpath ${BASH_SOURCE[0]}) logrotate >> $DIR_LOGS/logrotate.journal 2>&1
 "
 
 TPL_LOGROTATE="# 此配置文件由 $(realpath ${BASH_SOURCE[0]}) 自动更新
