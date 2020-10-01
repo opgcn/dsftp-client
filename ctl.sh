@@ -2,7 +2,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Author:   li.lei03@opg.cn
 # Created:  2020-09-25
-# Purpose:  DSFTP client controlor
+# Purpose:  DSFTP client controllor
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # global configs

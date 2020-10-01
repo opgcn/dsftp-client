@@ -1,6 +1,6 @@
 # dsftp-client
 
-基于[lftp](http://lftp.tech/)、[rclone](https://rclone.org/)、[sshfs](https://github.com/libfuse/sshfs)等开源组件集成的[东珠DSFTP文件交换服务](http://dsftp.opg.cn)**示例客户端**，旨在让租户更方便的与总部数据中台进行数据文件对接（接入/导出）。它包括以下引人的特性：
+基于[lftp](http://lftp.tech/)、[rclone](https://rclone.org/)、[sshfs](https://github.com/libfuse/sshfs)等开源组件集成的[东珠DSFTP文件交换服务](http://dsftp.opg.cn)**示例客户端**，旨在让租户以最低的开发代价与总部数据中台进行数据文件对接（接入/导出）。它包括以下引人的特性：
 
 - 简单配置地址、用户、秘钥后，租户马上可以通过交互式CLI/GUI的方式访问DSFTP，加速联调对接；
 - 租户可以将DSFTP中的文件内容以HTTP方式代理给租户网络中的非技术人员，在浏览器中查看；
@@ -110,6 +110,10 @@ chmod a+x ./ctl.sh
 
 同时，`logrotate`命令可以对`logs/*.log`进行按天轮转，压缩或丢弃历史日志。
 
+此外，如果租户侧如果会自行配置`supervisord`、`systemd`、`initd`，会是更好的选择。
+
 ## 7 其它说明
 
-*dsftp-client*仅作为示例由数据中台提供给租户侧参考，由于其组件均为开源工具，故而不提供SLA保证。租户侧应当结合自身特点自选访问DSFTP的工具，并保障稳定性。
+- *dsftp-client*仅作为示例由数据中台提供给租户侧参考，由于其组件均为开源工具，故而不提供SLA保证。
+- 租户侧应当结合自身特点自选访问DSFTP的工具，并保障稳定性。
+- 如果租户侧有较强的开发能力，自行开发将是更好的选择。
