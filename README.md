@@ -79,8 +79,6 @@ chmod a+x ./ctl.sh
 
 ## 5 镜像DSFTP
 
-这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。
-
 *镜像*是指将DSFTP租户空间中的文件，自动化同步到租户的其它存储系统（如租户的OSS、租户自建的FTP等）中，或相反的过程。*dsftp-client*在`conf/client.conf`中提供以下参数，用以描述*镜像*功能相关配置：
 - `MIRROR_OTHER`表示租户侧其它存储系统的配置信息，采用`存储类型 配置项1 配置值1 配置项2 配置值2 配置项3 配置值3 .....`的形式，例如：
   - *OSS*存储: `s3 provider Alibaba endpoint OSS的地域内网终端节点 env_auth false access_key_id 填写AK secret_access_key 填写SK`
@@ -103,6 +101,8 @@ chmod a+x ./ctl.sh
 配置完成后，通过使用的子命令有：
 - `mirroronce`会以前台进程一次性方式进行不停歇的镜像同步；
 - `mirrorloop`会以前台进程循环方式进行不停歇的镜像同步；
+
+这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。例如，租户侧可以配置`MIRROR_OTHER=local`、`MIRROR_METHOD=move`、`MIRROR_DIRECTION=OTHER:/home/root/upload-to-dsftp/ DSFTP:writable/uploaded-from-mirror/`，实现本地`/home/root/upload-to-dsftp/`目录中的子目录及文件增量异步向DSFTP镜像移动，实现离线文件接入数据中台。这样，既不影响租户侧本地的数据文件生成逻辑，也能对抗网络的不稳定性实现不断的传输。
 
 ## 6 后台运行
 
