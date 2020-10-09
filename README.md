@@ -102,7 +102,7 @@ chmod a+x ./ctl.sh
 - `mirroronce`会以前台进程一次性方式进行不停歇的镜像同步；
 - `mirrorloop`会以前台进程循环方式进行不停歇的镜像同步；
 
-这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。例如，租户侧可以配置`MIRROR_OTHER=local`、`MIRROR_METHOD=move`、`MIRROR_DIRECTION=OTHER:/home/root/upload-to-dsftp/ DSFTP:writable/uploaded-from-mirror/`，实现本地`/home/root/upload-to-dsftp/`目录中的子目录及文件增量异步向DSFTP镜像移动，实现离线文件接入数据中台。这样，既不影响租户侧本地的数据文件生成逻辑，也能对抗网络的不稳定性实现不断的传输。
+这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。例如，租户侧可以配置`MIRROR_OTHER=local`、`MIRROR_METHOD=move`、`MIRROR_DIRECTION="OTHER:/home/root/upload-to-dsftp/ DSFTP:writable/uploaded-from-mirror/"`，实现本地`/home/root/upload-to-dsftp/`目录中的子目录及文件增量异步移动到DSFTP的租户目录`writable/uploaded-from-mirror/`下，实现离线文件接入数据中台。这样，既不影响租户侧本地的数据文件生成逻辑，也能对抗网络的不稳定性实现不断的传输。
 
 ## 6 后台运行
 
