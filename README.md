@@ -48,6 +48,8 @@ vim conf/client.conf
 
 用户可以通过`lftp`、`sftp`、`explore`子命令交互式访问其DSFTP租户空间，也可使用`tree`、`list`、`size`列取DSFTP租户空间的文件信息。
 
+以上代理方式均为同步传输，无法抵抗网络抖动，建议仅作为交互式联调作用使用。
+
 ## 3 代理DSFTP
 
 ### 3.1 HTTP代理
@@ -70,12 +72,16 @@ vim conf/client.conf
 - 子命令`nginx`可以查看推荐的nginx配置；
 - 租户侧工程师需要对代理服务器的入口白名单进行控制
 
+以上代理方式均为同步传输，可用性同时受限于远端DSFTP的可用性及本地代理服务的可用性。
+
 ## 4 挂载DSFTP
 
 在数据接入/导出数据中台的过程中，如果租户侧期望尽可能的简化开发成本，只通过`cp`、`mv`等本地方式上传、下载文件，可以通过将DSFTP的租户空间挂载为本地目录来实现:
 - 子命令`mount`实现挂载；
 - 子命令`lmount`显示目前挂载状态列表；
 - 子命令`umount`取消挂载；
+
+此方式为同步传输，无法抵抗网络抖动，生产环境读写逻辑需要租户侧需要额外的监控和异常处理。
 
 ## 5 镜像DSFTP
 
@@ -102,7 +108,7 @@ vim conf/client.conf
 - `mirroronce`会以前台进程一次性方式进行不停歇的镜像同步；
 - `mirrorloop`会以前台进程循环方式进行不停歇的镜像同步；
 
-这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。例如，租户侧可以配置`MIRROR_OTHER=local`、`MIRROR_METHOD=move`、`MIRROR_DIRECTION="OTHER:/home/root/upload-to-dsftp/ DSFTP:writable/uploaded-from-mirror/"`，实现本地`/home/root/upload-to-dsftp/`目录中的子目录及文件增量异步移动到DSFTP的租户目录`writable/uploaded-from-mirror/`下，实现离线文件接入数据中台。这样，既不影响租户侧本地的数据文件生成逻辑，也能对抗网络的不稳定性实现不断的传输。
+这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。例如，租户侧可以配置`MIRROR_OTHER=local`、`MIRROR_METHOD=move`、`MIRROR_DIRECTION="OTHER:/home/root/upload-to-dsftp/ DSFTP:writable/uploaded-from-mirror/"`，实现本地`/home/root/upload-to-dsftp/`目录中的子目录及文件增量异步移动到DSFTP的租户目录`writable/uploaded-from-mirror/`下，实现离线文件接入数据中台。这样，既不影响租户侧本地的数据文件生成逻辑，也能对抗网络的不稳定性实现具备自愈能力的数据文件传输。
 
 ## 6 后台运行
 
@@ -118,4 +124,4 @@ vim conf/client.conf
 
 - *dsftp-client*仅作为示例由数据中台提供给租户侧参考，由于其组件均为开源工具，故而不提供SLA保证。
 - 租户侧应当结合自身特点自选访问DSFTP的工具，并保障稳定性。
-- 如果租户侧有较强的开发能力，自行开发将是更好的选择。
+- 如果租户侧有较强的开发能力，自行开发将是更好的选择，但同样建议租户侧将数据传输和数据处理解耦，异步处理。
