@@ -7,6 +7,8 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # global configs
 
+set -o pipefail
+
 PATH_CONF_CLIENT=$(dirname $(realpath ${BASH_SOURCE[0]}))/conf/client.conf
 source $PATH_CONF_CLIENT || { echo "无法加载配置文件'$PATH_CONF_CLIENT'，请检查！"; exit 255; }
 
@@ -23,6 +25,7 @@ HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
     挂载状态    $(mount -l | fgrep fuse.sshfs | fgrep $DSFTP_USER | cut -d' ' -f1,3 | sed 's| | ===(fuse.sshfs)==> |g')
 
 用法:
+    isvalid     检查DSFTP可用性(网络及租户可用)
     lftp        使用lftp工具交互式访问DSFTP
     sftp        使用sftp工具交互式访问DSFTP
     explore     使用rclone工具以交互式方式访问DSFTP
@@ -152,7 +155,7 @@ function echoDebug
 function runCmd
 {
     echoDebug DEBUG "命令: $*"
-    $@
+    "$@"
     nRet=$?; [ 0 -eq $nRet ] || echoDebug WARN "命令返回非零值: $nRet"
     return $nRet
 }
@@ -178,7 +181,7 @@ function checkRclone
 
 function configRcloneDsftp
 {
-     rcloneWrapper config create DSFTP sftp host "$DSFTP_HOST" user "$DSFTP_USER" pass "$DSFTP_PASS" > /dev/null
+    rcloneWrapper config create DSFTP sftp host "$DSFTP_HOST" user "$DSFTP_USER" pass "$DSFTP_PASS" > /dev/null
 }
 
 function configRcloneLocal
@@ -231,6 +234,17 @@ function parseOpts
     declare sOpt="$1"
     if [ "$sOpt" == "help" ] || [ "$sOpt" == '' ]; then
         echo "$HELP"
+    elif [ "$sOpt" == "isvalid" ]; then
+        checkConf && checkLftp \
+        && echoDebug INFO "测试本机域名解析" \
+        && runCmd getent hosts $DSFTP_HOST \
+        && echoDebug INFO "测试本机公网IP" \
+        && runCmd curl -s myip.ipip.net \
+        && echoDebug INFO "测试网络连通 sftp://$DSFTP_HOST" \
+        && runCmd timeout 3 bash -c "</dev/tcp/$DSFTP_HOST/22" \
+        && echoDebug INFO "测试登录租户账号 $DSFTP_USER" \
+        && runCmd timeout 3 lftp -u ${DSFTP_USER},${DSFTP_PASS} -e 'cat README.txt; exit' sftp://${DSFTP_HOST} \
+        && echoDebug INFO "可用性测试正常" 
     elif [ "$sOpt" == "lftp" ]; then
         checkConf && checkLftp \
         && runCmd lftp -u ${DSFTP_USER},${DSFTP_PASS} -e 'help' sftp://${DSFTP_HOST}
