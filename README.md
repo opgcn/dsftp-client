@@ -22,31 +22,31 @@ sudo yum install -y lftp fuse-sshfs sshpass
 安装*ds-client*：
 ```bash
 git clone https://github.com/opgcn/dsftp-client.git
+cd dsftp-client/
+chmod a+x ./ctl.sh
 ```
 
 初始化配置文件，并填写*DSFTP*的地址等信息:
 ```bash
-cd dsftp-client/
 cp conf/client.conf.example conf/client.conf
 vim conf/client.conf
 ```
-
-查看控制器的命令行帮助:
-```bash
-chmod a+x ./ctl.sh
-./ctl.sh help
-```
-
-*ds-client*的使用十分简单，配置完整后，只需要`./ctl.sh 子命令`调取相应的功能即可。
-
-## 2 连接DSFTP
-
 `conf/client.conf`中的以下配置项，决定从本地连接DSFTP及其租户空间：
 - `DSFTP_HOST`: DSFTP的地址，注意公网对接和私网对接时不同；
 - `DSFTP_USER`: DSFTP的租户ID，由数据中台产品经理提供；
 - `DSFTP_PASS`: DSFTP的租户秘钥，由数据中台产品经理提供；
 
-配置完成后，用户可以通过`lftp`、`sftp`、`explore`子命令交互式访问其DSFTP租户空间，也可使用`tree`、`list`、`size`列取DSFTP租户空间的文件信息。
+验证DSFTP的网络可达性及租户可用性:
+```bash
+./ctl.sh help
+./ctl.sh isvalid
+```
+
+*ds-client*的使用十分简单，配置完整后，只需要`./ctl.sh 子命令`调取相应的功能即可。
+
+## 2 直接访问DSFTP
+
+用户可以通过`lftp`、`sftp`、`explore`子命令交互式访问其DSFTP租户空间，也可使用`tree`、`list`、`size`列取DSFTP租户空间的文件信息。
 
 ## 3 代理DSFTP
 
