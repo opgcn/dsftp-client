@@ -1,6 +1,6 @@
 # dsftp-client
 
-基于[lftp](http://lftp.tech/)、[rclone](https://rclone.org/)、[sshfs](https://github.com/libfuse/sshfs)等开源组件集成的[东珠DSFTP文件交换服务](http://dsftp.opg.cn)**示例客户端**，旨在让租户以最低的开发代价与总部数据中台进行数据文件对接（接入/导出）。它包括以下引人的特性：
+基于[lftp](http://lftp.tech/)、[rclone](https://rclone.org/)、[sshfs](https://github.com/libfuse/sshfs)等开源组件集成的[东珠DSFTP文件交换服务](http://dsftp.opg.cn)**示例客户端**，旨在让租户以最低的开发代价与总部数据中台进行数据文件**传输**（接入/导出）。它包括以下引人的特性：
 
 - 简单配置地址、用户、秘钥后，租户马上可以通过交互式CLI/GUI的方式访问DSFTP，加速联调对接；
 - 租户可以将DSFTP中的文件内容以HTTP方式代理给租户网络中的非技术人员，在浏览器中查看；
