@@ -122,5 +122,5 @@ vim conf/client.conf
 
 ## 7 其它说明
 
-- *dsftp-client*仅作为示例**业务侧离线数据传输客户端**，由于其组件均为开源工具，提供技术支持服务，但不便提供SLA保障。业务线可以自行开发离线文件传输程序。
-- *dsftp-client***仅包括数据传输功能而非数据处理功能**，业务侧CSV文件的编解码可参考中台示例的[dscsv项目](https://github.com/opgcn/dscsv)
+- *dsftp-client*仅作为**示例业务侧离线文件传输客户端**，由于其组件均为开源工具且在业务侧服务器中运行，中台提供技术支持，但不便提供SLA保障。
+- *dsftp-client***仅包括文件传输而非文件处理**，业务侧**CSV文件的编解码需求**可参考中台示例的[dscsv项目](https://github.com/opgcn/dscsv)。
