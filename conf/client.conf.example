@@ -18,6 +18,7 @@ PATH_LOGROTATE_STATE=$DIR_LOGS/logrotate.state
 # 第三方组件参数，请勿修改
 OPTS_RCLONE_STATS="--stats=30s --stats-one-line"
 OPTS_RCLONE_VFS="--dir-cache-time=1m --cache-dir=$DIR_CACHE --vfs-cache-mode=writes --vfs-cache-max-age=10m --vfs-cache-max-size=1g"
+OPTS_RCLONE_FILTER="" # https://rclone.org/filtering/#max-age-don-t-transfer-any-file-older-than-this
 OPTS_SSHFS="$DIR_MNT -C -o password_stdin,StrictHostKeyChecking=no,PreferredAuthentications=password,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3"
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 

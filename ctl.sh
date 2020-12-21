@@ -223,7 +223,7 @@ function doMirror
 {
     [ "move" == "$MIRROR_METHOD" ] && MIRROR_METHOD="$MIRROR_METHOD --delete-empty-src-dirs --create-empty-src-dirs"
     checkConf && checkRclone && configRcloneDsftp && configRcloneLocal \
-    && rcloneWrapper $MIRROR_METHOD $MIRROR_DIRECTION $OPTS_RCLONE_ORDER $OPTS_RCLONE_STATS
+    && rcloneWrapper $MIRROR_METHOD $OPTS_RCLONE_FILTER $MIRROR_DIRECTION $OPTS_RCLONE_ORDER $OPTS_RCLONE_STATS
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
