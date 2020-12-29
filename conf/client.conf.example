@@ -35,6 +35,7 @@ DSFTP_PROXY_FTP_OPTS="--addr=:2121 --user=foo --pass=bar"
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # 租户镜像相关配置
 MIRROR_OTHER="s3 provider Alibaba endpoint oss-cn-shanghai-internal.aliyuncs.com env_auth false access_key_id 填写AK secret_access_key 填写SK"
-MIRROR_DIRECTION="DSFTP:writable/ OTHER:桶名/前缀目录"
+MIRROR_DIRECTIONS[1]="DSFTP:writable/ OTHER:桶名/前缀目录"
+# MIRROR_DIRECTIONS[2]="blablabla"
 MIRROR_METHOD="copy"
 MIRROR_INTERVAL=10

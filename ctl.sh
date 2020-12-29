@@ -21,7 +21,6 @@ HELP="$FILE_THIS - DSFTP客户端控制器 https://github.com/opgcn/dsftp-client
 当前重要配置:
     DSFTP空间   $DSFTP_URI
     OTHER存储   $MIRROR_OTHER
-    镜像方向    ${MIRROR_DIRECTION/ / ===(${MIRROR_METHOD})==> }
     挂载状态    $(mount -l | fgrep fuse.sshfs | fgrep $DSFTP_USER | cut -d' ' -f1,3 | sed 's| | ===(fuse.sshfs)==> |g')
 
 用法:
@@ -223,7 +222,11 @@ function doMirror
 {
     [ "move" == "$MIRROR_METHOD" ] && MIRROR_METHOD="$MIRROR_METHOD --delete-empty-src-dirs --create-empty-src-dirs"
     checkConf && checkRclone && configRcloneDsftp && configRcloneLocal \
-    && rcloneWrapper $MIRROR_METHOD $OPTS_RCLONE_FILTER $MIRROR_DIRECTION $OPTS_RCLONE_ORDER $OPTS_RCLONE_STATS
+    && {
+    for sDirection in "${MIRROR_DIRECTIONS[@]}"; do
+        rcloneWrapper $MIRROR_METHOD $OPTS_RCLONE_FILTER $sDirection $OPTS_RCLONE_ORDER $OPTS_RCLONE_STATS
+    done;
+    }
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
