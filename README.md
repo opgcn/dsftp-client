@@ -91,7 +91,7 @@ vim conf/client.conf
   - *SFTP*存储: `sftp host 租户侧其它SFTP地址 user 用户名 pass 密码`
   - *FTP*存储: `ftp host 租户侧FTP地址 user 用户名 pass 密码`
   - 本地磁盘存储: `local`
-- `MIRROR_DIRECTION`镜像方向，满足`源存储系统标识:源存储位置 目标存储标识:目标存储位置`的格式：
+- `MIRROR_DIRECTIONS`镜像方向数组，支持配置多个，且满足`源存储系统标识:源存储位置 目标存储标识:目标存储位置`的格式：
   - 存储系统标识：`DSFTP`标识租户的DSFTP存储空间，`OTHER`标识租户的其它存储系统。
   - 存储位置: 对于对象存储为`桶名/对象前置`，块存储为`/绝对路径目录/`
   - 例如:
@@ -108,7 +108,7 @@ vim conf/client.conf
 - `mirroronce`会以前台进程一次性方式进行不停歇的镜像同步；
 - `mirrorloop`会以前台进程循环方式进行不停歇的镜像同步；
 
-这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。例如，租户侧可以配置`MIRROR_OTHER=local`、`MIRROR_METHOD=move`、`MIRROR_DIRECTION="OTHER:/home/root/upload-to-dsftp/ DSFTP:writable/uploaded-from-mirror/"`，实现本地`/home/root/upload-to-dsftp/`目录中的子目录及文件增量异步移动到DSFTP的租户目录`writable/uploaded-from-mirror/`下，实现离线文件接入数据中台。这样，既不影响租户侧本地的数据文件生成逻辑，也能对抗网络的不稳定性实现具备自愈能力的数据文件传输。
+这是数据中台的**推荐方式**，它通过**异步传输**的方式，将租户侧*数据编解码逻辑*和*数据传输逻辑*完全解耦。易用性、稳定性、可维护性最高。例如，租户侧可以配置`MIRROR_OTHER=local`、`MIRROR_METHOD=move`、`MIRROR_DIRECTIONS[1]="OTHER:/home/root/upload-to-dsftp/ DSFTP:writable/uploaded-from-mirror/"`，实现本地`/home/root/upload-to-dsftp/`目录中的子目录及文件增量异步移动到DSFTP的租户目录`writable/uploaded-from-mirror/`下，实现离线文件接入数据中台。这样，既不影响租户侧本地的数据文件生成逻辑，也能对抗网络的不稳定性实现具备自愈能力的数据文件传输。
 
 ## 6 后台运行
 
