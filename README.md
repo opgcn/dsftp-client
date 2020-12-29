@@ -11,7 +11,7 @@
 
 依赖的组件*rclone*可以使用[官方文档](https://rclone.org/install/)中建议方式进行安装:
 ```bash
-curl https://rclone.org/install.sh | sudo bash
+yum install -y https://downloads.rclone.org/v1.53.3/rclone-v1.53.3-linux-amd64.rpm
 ```
 
 依赖其它组件可以使用*yum*工具安装：
